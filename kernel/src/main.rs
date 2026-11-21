@@ -67,10 +67,10 @@ pub extern "C" fn kmain() -> ! {
     assert!(BASE_REVISION.is_supported());
 
     console::init();
+    init_framebuffer();
     banner();
 
     init_memory();
-    init_framebuffer();
 
     journal::record(0, Event::Boot);
 
@@ -153,18 +153,30 @@ fn init_framebuffer() {
         return;
     };
 
-    let mut framebuffer = unsafe {
+    let surface = unsafe {
         console::framebuffer::Framebuffer::new(
             fb.address,
             fb.width as usize,
             fb.height as usize,
             fb.pitch as usize,
             fb.bpp as usize,
+            fb.red_mask_shift as u32,
+            fb.green_mask_shift as u32,
+            fb.blue_mask_shift as u32,
         )
     };
-    let (w, h) = framebuffer.dimensions();
-    framebuffer.boot_signal();
-    println!("[fb]   {}x{} -- sinal de boot desenhado", w, h);
+
+    let Some(surface) = surface else {
+        println!("[fb]   {} bpp nao suportado -- seguindo so na serial", fb.bpp);
+        return;
+    };
+
+    let (w, h) = surface.dimensions();
+    let text = console::framebuffer::TextConsole::new(surface);
+    let (cols, rows) = text.dimensions();
+    console::attach(text);
+
+    println!("[fb]   {}x{} -- console de texto {}x{}", w, h, cols, rows);
 }
 
 // --- Demonstracao do controle de admissao ---------------------------------

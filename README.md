@@ -58,7 +58,7 @@ A saída do kernel sai pela **serial**, no próprio terminal:
 
 A terceira linha é a tese inteira em miniatura: **carga que não cabe é recusada na entrada, com motivo legível** — nunca aceita para morrer depois.
 
-Uma janela do QEMU abre em paralelo mostrando as barras de cor do sinal de boot (texto no framebuffer exige fonte bitmap, que chega junto com a CLI no M2).
+E **a mesma saida aparece na tela**, no console de texto do framebuffer: barra de identidade no topo e o log do kernel abaixo, com rolagem. Em hardware real, onde nao ha serial visivel, essa e' a unica forma de ver o que a maquina esta fazendo.
 
 ### Gravar no pendrive
 
@@ -78,7 +78,7 @@ kernel/src/
   boot/limine.rs   protocolo Limine escrito à mão (mantém o kernel em estável)
   sync.rs          spinlock próprio (sem dependência externa)
   arch/x86_64/     I/O de porta, halt
-  console/         serial 16550 (texto) + framebuffer (sinal de boot)
+  console/         serial 16550 + console de texto no framebuffer (fonte 8x16)
   mem/             alocador de quadros físicos + heap do kernel
   session/         a unidade de execução: pesos + KV + orçamento + prazo
   kv/              KV cache paginado como objeto de kernel
@@ -93,7 +93,7 @@ kernel/src/
 
 | | Entrega | Pronto quando |
 |---|---|---|
-| **M0** | Boot, console, memória, admissão | ✅ este commit |
+| **M0** | Boot, console (serial + framebuffer), memória, admissão | ✅ |
 | **M1** | `llama2.c` portado para `no_std`, uma sessão | Gera tokens, KV alocado pelo kernel |
 | **M2** | Duas sessões, escalonador preemptivo, `ps`/`top` | Preempção visível ao vivo |
 | **M3** | Orçamento, despejo de KV sob pressão | Terceira sessão recusada por memória |

@@ -1,6 +1,6 @@
 # GlintOS — Documento de Arquitetura
 
-**Versão:** 0.3 · **Data:** 2026-09-20 · **Status:** M0 implementado (esqueleto), verificado por `cargo check`/`clippy`; falta ligar e bootar
+**Versão:** 0.4 · **Data:** 2026-09-20 · **Status:** M0 implementado (esqueleto), verificado por `cargo check`/`clippy`; falta ligar e bootar
 
 ---
 
@@ -230,6 +230,7 @@ Risco conhecido a enfrentar quando chegar a hora: **rótulos vazam para cima**. 
 | D3 | Motor de inferência: porte de `llama2.c` | ~700 linhas, zero dependências, praticamente desenhado para bare metal. |
 | D4 | Modelo de 15M–110M parâmetros, embutido na imagem | Vazão não é o ponto; a abstração é. Elimina a necessidade de FS em v0. |
 | D5 | Driver `Simulated` antes de hardware | A parte difícil é escalonador + admission control + KV. Simulado os torna determinísticos e testáveis. |
+| D7 | Console de texto no framebuffer antecipado do M2 para o M0 | Boot em hardware real mostrou o problema: toda a saída ia para a serial, que ninguém escuta numa máquina física. Um console que fala por um canal invisível não é console — e contraria o princípio de interface do projeto. Fonte 8x16 rasterizada do DejaVu Sans Mono Bold; o mesmo `println!` sai na serial e na tela. |
 | D6 | GPU e Metal adiados para futuro distante | Drivers fechados, inviáveis em bare metal. Interface de acelerador mantém a porta aberta sem custo hoje. |
 
 ---
@@ -240,7 +241,6 @@ Risco conhecido a enfrentar quando chegar a hora: **rótulos vazam para cima**. 
 - **Formato de modelo.** GGUF ou formato próprio simplificado.
 - **Quantização.** int8 ou q4.
 - **Tamanho de bloco do KV.** Decide granularidade de despejo e de COW de prefixo.
-- **Console.** Serial no M0; framebuffer exige fonte bitmap e chega com a CLI no M2.
 - **Ponto flutuante.** O alvo `x86_64-unknown-none` desabilita SSE e usa *soft-float* — correto para kernel, inviável para inferência. M1 precisa habilitar SSE/AVX em `CR0`/`CR4` e decidir a política de salvamento de estado de FPU na preempção.
 - **Ergonomia da declassificação** (quando DIFC entrar). Risco número um do projeto na fase de segurança.
 
