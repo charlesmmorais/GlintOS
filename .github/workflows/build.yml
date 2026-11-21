@@ -1,0 +1,76 @@
+name: build
+
+# Gera a ISO bootavel e verifica que ela realmente boota.
+# Em push de tag (v*), anexa a ISO a uma release.
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  iso:
+    name: ISO + teste de boot
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain Rust
+        run: |
+          rustup toolchain install stable --profile minimal --component clippy
+          rustup target add x86_64-unknown-none
+          rustc --version
+
+      - name: Cache do cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: cargo-${{ runner.os }}-
+
+      - name: Dependencias do sistema
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xorriso qemu-system-x86 ovmf
+
+      - name: Clippy
+        run: cargo clippy --release -- -D warnings
+
+      - name: Gerar a ISO
+        run: make
+
+      - name: Teste de boot (BIOS e UEFI)
+        run: bash ./scripts/boot-test.sh glintos.iso
+
+      - name: Publicar a ISO como artefato
+        uses: actions/upload-artifact@v4
+        with:
+          name: glintos-iso
+          path: |
+            glintos.iso
+            serial-bios.log
+            serial-uefi.log
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Anexar a ISO a release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" glintos.iso \
+            --title "GlintOS $GITHUB_REF_NAME" --generate-notes \
+          || gh release upload "$GITHUB_REF_NAME" glintos.iso --clobber
